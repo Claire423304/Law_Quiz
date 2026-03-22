@@ -21,11 +21,11 @@
     <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-5 border">
         <div class="flex justify-between items-center border-b pb-4 mb-6">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-1">
-                ⚖️ 律師高考題庫 Pro <span id="header-subject" class="text-blue-600 text-sm font-medium"></span>
+                ⚖️ 律師題庫 Pro <span id="header-subject" class="text-blue-600 text-sm font-medium"></span>
             </h1>
             <div class="flex gap-2">
-                <button onclick="triggerFileInput()" class="text-[10px] text-blue-500 underline font-medium">更新題庫</button>
-                <button onclick="clearErrorBook()" class="text-[10px] text-red-400 underline font-medium">清空數據</button>
+                <button onclick="clearCurrentSubject()" class="text-[10px] text-gray-400 underline font-medium">重設當前科目</button>
+                <button onclick="clearAllData()" class="text-[10px] text-red-400 underline font-medium">清空全部記錄</button>
             </div>
         </div>
         
@@ -35,8 +35,8 @@
         </div>
 
         <div id="setup-section" class="hidden">
-            <div id="resume-notice" class="hidden bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-6 flex justify-between items-center">
-                <p class="text-yellow-800 text-xs font-bold">偵測到未完成的練習，要繼續嗎？</p>
+            <div id="resume-notice" class="hidden bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-6 flex justify-between items-center shadow-sm">
+                <p class="text-yellow-800 text-xs font-bold">⚠️ 偵測到未完成的練習</p>
                 <div class="flex gap-2">
                     <button onclick="resumeQuiz()" class="bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold">繼續</button>
                     <button onclick="discardSession()" class="bg-white text-gray-400 border px-3 py-1.5 rounded-lg text-[10px] font-bold">放棄</button>
@@ -45,8 +45,9 @@
 
             <div class="flex flex-col items-center mb-6">
                 <div class="flex gap-2 mb-2">
-                    <button onclick="backupProgress()" class="text-xs bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 shadow-sm transition">💾 備份進度</button>
-                    <button onclick="triggerRestoreInput()" class="text-xs bg-green-50 text-green-700 px-4 py-2 rounded-lg font-bold border border-green-200 shadow-sm transition">➕ 合併進度</button>
+                    <button onclick="triggerFileInput()" class="text-xs bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold shadow-md hover:bg-blue-700 transition">🔄 更新題庫</button>
+                    <button onclick="backupProgress()" class="text-xs bg-blue-50 text-blue-600 px-5 py-2.5 rounded-lg font-bold border border-blue-200 shadow-sm hover:bg-blue-100 transition">💾 備份進度</button>
+                    <button onclick="triggerRestoreInput()" class="text-xs bg-green-50 text-green-700 px-5 py-2.5 rounded-lg font-bold border border-green-200 shadow-sm hover:bg-green-100 transition">➕ 合併進度</button>
                     <input type="file" id="restore-input" accept=".json" class="hidden" onchange="mergeProgress(this)">
                 </div>
                 <p id="backup-time-display" class="text-[10px] text-gray-400 italic">進度將自動保存至瀏覽器</p>
@@ -169,7 +170,7 @@
             </div>
             <textarea id="export-text" class="w-full flex-grow p-3 border rounded-xl font-mono text-[10px] mb-4 bg-gray-50 no-scrollbar" readonly></textarea>
             <div class="flex gap-2">
-                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold">複製</button>
+                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">複製</button>
                 <button onclick="closeExportOverlay()" class="px-4 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">關閉</button>
             </div>
         </div>
@@ -182,51 +183,29 @@
         let selectedCount = 10; let correctCount = 0; let isErrorMode = false;
         let selectedMultiChoices = [];
 
-        // --- 核心進化：狀態持久化 ---
+        // --- 狀態持久化 ---
         function saveSession() {
-            const session = {
-                quizPool,
-                userAnswers,
-                currentIdx,
-                correctCount,
-                isErrorMode,
-                timestamp: new Date().getTime()
-            };
+            const session = { quizPool, userAnswers, currentIdx, correctCount, isErrorMode, timestamp: new Date().getTime() };
             localStorage.setItem('law_quiz_session', JSON.stringify(session));
         }
-
         function checkSession() {
             const saved = localStorage.getItem('law_quiz_session');
-            if (saved && rawData.length > 0) {
-                document.getElementById('resume-notice').classList.remove('hidden');
-            }
+            if (saved && rawData.length > 0) { document.getElementById('resume-notice').classList.remove('hidden'); }
         }
-
         function resumeQuiz() {
             const saved = JSON.parse(localStorage.getItem('law_quiz_session'));
-            quizPool = saved.quizPool;
-            userAnswers = saved.userAnswers;
-            currentIdx = saved.currentIdx;
-            correctCount = saved.correctCount;
-            isErrorMode = saved.isErrorMode;
-            
+            quizPool = saved.quizPool; userAnswers = saved.userAnswers;
+            currentIdx = saved.currentIdx; correctCount = saved.correctCount; isErrorMode = saved.isErrorMode;
             document.getElementById('resume-notice').classList.add('hidden');
             document.getElementById('setup-section').classList.add('hidden');
             document.getElementById('quiz-section').classList.remove('hidden');
             renderQuestion();
         }
+        function discardSession() { localStorage.removeItem('law_quiz_session'); document.getElementById('resume-notice').classList.add('hidden'); }
+        function finishSession() { discardSession(); location.reload(); }
 
-        function discardSession() {
-            localStorage.removeItem('law_quiz_session');
-            document.getElementById('resume-notice').classList.add('hidden');
-        }
-
-        function finishSession() {
-            discardSession();
-            location.reload();
-        }
-
-        // --- 備份/合併邏輯 ---
+        // --- 備份/合併/更新 ---
+        function triggerFileInput() { document.getElementById('file-input').click(); }
         function backupProgress() {
             const data = { mastered: localStorage.getItem('law_mastered_list'), errors: localStorage.getItem('law_error_book') };
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -235,12 +214,10 @@
             localStorage.setItem('last_backup_timestamp', new Date().toISOString());
             updateBackupTime();
         }
-
         function updateBackupTime() {
             const lastTime = localStorage.getItem('last_backup_timestamp');
             if (lastTime) { document.getElementById('backup-time-display').innerText = `上次備份：${new Date(lastTime).toLocaleString()}`; }
         }
-
         function triggerRestoreInput() { document.getElementById('restore-input').click(); }
         function mergeProgress(input) {
             const file = input.files[0]; if (!file) return;
@@ -256,20 +233,50 @@
                     let inE = JSON.parse(incoming.errors || '[]');
                     let combE = [...new Set([...curE, ...inE])].filter(id => !combM.includes(id));
                     localStorage.setItem('law_error_book', JSON.stringify(combE));
-                    alert("進度合併成功！"); location.reload();
+                    alert("進度已智能合併！"); location.reload();
                 } catch (err) { alert("讀取失敗！"); }
             };
             reader.readAsText(file);
         }
 
-        // --- 答題核心邏輯 ---
+        // --- 核心邏輯 ---
         function getMasteredList() { return JSON.parse(localStorage.getItem('law_mastered_list') || '[]'); }
         function addToMastered(uuid) {
             let list = getMasteredList(); if (!list.includes(uuid)) { list.push(uuid); localStorage.setItem('law_mastered_list', JSON.stringify(list)); }
         }
         function isMastered(uuid) { return getMasteredList().includes(uuid); }
-        function exitQuiz() { if (confirm("確定離開？進度將保留在首頁。")) location.reload(); }
+        function exitQuiz() { if (confirm("確定離開？進度將保留。")) location.reload(); }
 
+        // --- 清空紀錄優化 ---
+        function clearCurrentSubject() {
+            if (rawData.length === 0) return alert("請先載入題庫！");
+            if (confirm("確定要【僅重置目前科目】的練習進度與錯題嗎？其他科目進度將被保留。")) {
+                const currentUuids = rawData.map(i => i.uuid);
+                
+                // 移除當前科目的掌握紀錄
+                let mastered = JSON.parse(localStorage.getItem('law_mastered_list') || '[]');
+                mastered = mastered.filter(id => !currentUuids.includes(id));
+                localStorage.setItem('law_mastered_list', JSON.stringify(mastered));
+
+                // 移除當前科目的錯題紀錄
+                let errors = JSON.parse(localStorage.getItem('law_error_book') || '[]');
+                errors = errors.filter(id => !currentUuids.includes(id));
+                localStorage.setItem('law_error_book', JSON.stringify(errors));
+
+                alert("當前科目進度已重置。");
+                location.reload();
+            }
+        }
+
+        function clearAllData() {
+            if (confirm("⚠️ 注意：這將會清除【所有考科】的所有練習紀錄、錯題與題庫暫存，且無法復原。確定要繼續嗎？")) {
+                localStorage.clear();
+                alert("所有數據已徹底清除。");
+                location.reload();
+            }
+        }
+
+        // --- 餘下答題邏輯 (不變) ---
         function setCount(num, btn) {
             selectedCount = num;
             document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
@@ -286,19 +293,11 @@
         async function loadFromLocal() {
             setTimeout(() => {
                 const saved = localStorage.getItem('law_master_db');
-                if (saved) { 
-                    rawData = JSON.parse(saved); 
-                    showSetup(); 
-                    checkSession(); // 載入資料後檢查是否有存檔
-                } 
-                else { 
-                    document.getElementById('loading-status').classList.add('hidden'); 
-                    document.getElementById('setup-section').classList.remove('hidden'); 
-                }
+                if (saved) { rawData = JSON.parse(saved); showSetup(); checkSession(); } 
+                else { document.getElementById('loading-status').classList.add('hidden'); document.getElementById('setup-section').classList.remove('hidden'); }
                 updateBackupTime();
             }, 150);
         }
-
         function showSetup() {
             document.getElementById('loading-status').classList.add('hidden');
             document.getElementById('setup-section').classList.remove('hidden');
@@ -307,9 +306,6 @@
             if (rawData.length > 0) processRawData();
             updateErrorUI();
         }
-
-        function triggerFileInput() { document.getElementById('file-input').click(); }
-        window.onload = loadFromLocal;
 
         document.getElementById('file-input').addEventListener('change', function(e) {
             const reader = new FileReader();
@@ -337,13 +333,12 @@
         }
 
         function startQuiz(isErr) {
-            discardSession(); // 開始新練習時清除舊存檔
+            discardSession();
             isErrorMode = isErr;
             const yV = document.getElementById('year-select').value;
             const sV = document.getElementById('subject-select').value;
             const tV = document.getElementById('type-filter').value;
             let pool = [];
-            
             if (isErr) {
                 const ids = JSON.parse(localStorage.getItem('law_error_book') || '[]');
                 pool = rawData.filter(i => ids.includes(i.uuid));
@@ -398,9 +393,7 @@
             const q = quizPool[currentIdx]; document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             const isC = (choice === q.answer);
             const fb = document.getElementById('feedback-card');
-            
             userAnswers.push({ uuid: q.uuid, num: q.number || (currentIdx+1), content: q.content, isCorrect: isC, originalQ: q });
-
             if (isC) {
                 if (btn) btn.classList.add('bg-green-100', 'border-green-500');
                 document.getElementById('feedback-message').innerText = `正確！🎯`;
@@ -414,8 +407,7 @@
             }
             document.getElementById('correct-ans').innerText = `正確答案：(${q.answer})`;
             document.getElementById('feedback').classList.remove('hidden'); 
-            updateErrorUI();
-            saveSession(); // 每一題答完即刻存檔
+            updateErrorUI(); saveSession();
         }
 
         function nextQuestion() { currentIdx++; if (currentIdx < quizPool.length) { renderQuestion(); saveSession(); } else showResult(); }
@@ -433,13 +425,13 @@
                 tr.innerHTML = `<td class="p-3 text-center font-bold text-gray-400">${r.num}</td><td class="p-3 line-clamp-1">${r.content}</td><td class="p-3 text-center">${r.isCorrect ? '✅' : '❌'}</td>`;
                 body.appendChild(tr);
             });
-            saveSession(); // 結果頁也存檔，確保重新整理後還能看列表
+            saveSession();
         }
 
         async function runAIAnalysis(q) {
             const opt = Object.entries(q.options).map(([l, t]) => `(${l}) ${t}`).join('\n');
             const prompt = `分析法律題目：\n【科目】${q.subject || '法律綜合'}\n【出處】${q.title}\n【題目】\n${q.content}\n\n【選項】\n${opt}\n\n【正確答案】\n(${q.answer})\n\n請詳解法理爭點與相關條文。`;
-            navigator.clipboard.writeText(prompt); alert("指令已複製！"); window.open("https://gemini.google.com/app", "_blank");
+            navigator.clipboard.writeText(prompt); alert("指令已複製！請貼上 Gemini。"); window.open("https://gemini.google.com/app", "_blank");
         }
         function askGeminiAI() { runAIAnalysis(quizPool[currentIdx]); }
 
@@ -452,8 +444,6 @@
             document.getElementById('error-count').innerText = curE.length;
             document.getElementById('error-notice').classList.toggle('hidden', curE.length === 0);
         }
-
-        function clearErrorBook() { if (confirm("確定清空數據？")) { localStorage.clear(); location.reload(); } }
 
         function openExportModal() { document.getElementById('export-overlay').classList.remove('hidden'); generateExport('text'); }
         function closeExportOverlay() { document.getElementById('export-overlay').classList.add('hidden'); }
@@ -470,7 +460,6 @@
             });
             document.getElementById('export-text').value = t;
         }
-
         function exportToCSV() {
             const ids = JSON.parse(localStorage.getItem('law_error_book') || '[]');
             const items = rawData.filter(i => ids.includes(i.uuid));
@@ -486,8 +475,8 @@
             link.download = `律師錯題筆記_${new Date().toLocaleDateString()}.csv`;
             link.click();
         }
-
         async function copyExportText() { await navigator.clipboard.writeText(document.getElementById('export-text').value); alert("複製成功！"); }
+        window.onload = loadFromLocal;
     </script>
 </body>
 </html>
