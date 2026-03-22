@@ -37,9 +37,9 @@
         <div id="setup-section" class="hidden">
             <div class="flex flex-col items-center mb-6">
                 <div class="flex gap-2 mb-2">
-                    <button onclick="backupProgress()" class="text-xs bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 hover:bg-blue-100 transition">💾 備份進度</button>
-                    <button onclick="triggerRestoreInput()" class="text-xs bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-bold border border-gray-200 hover:bg-gray-100 transition">📂 還原進度</button>
-                    <input type="file" id="restore-input" accept=".json" class="hidden" onchange="restoreProgress(this)">
+                    <button onclick="backupProgress()" class="text-xs bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 hover:bg-blue-100 transition shadow-sm">💾 備份進度</button>
+                    <button onclick="triggerRestoreInput()" class="text-xs bg-green-50 text-green-700 px-4 py-2 rounded-lg font-bold border border-green-200 hover:bg-green-100 transition shadow-sm">➕ 合併進度</button>
+                    <input type="file" id="restore-input" accept=".json" class="hidden" onchange="mergeProgress(this)">
                 </div>
                 <p id="backup-time-display" class="text-[10px] text-gray-400 italic">尚未進行備份</p>
             </div>
@@ -63,15 +63,15 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2">1. 年度</label>
-                        <select id="year-select" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-medium"></select>
+                        <select id="year-select" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-medium outline-none"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2">2. 科目</label>
-                        <select id="subject-select" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-blue-600"></select>
+                        <select id="subject-select" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-blue-600 outline-none"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2">3. 題型</label>
-                        <select id="type-filter" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-blue-600">
+                        <select id="type-filter" class="w-full p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-blue-600 outline-none">
                             <option value="ALL">混合模式</option>
                             <option value="SINGLE">單選題</option>
                             <option value="MULTI">複選題</option>
@@ -90,7 +90,7 @@
                         <button type="button" onclick="toggleCustomInput(this)" class="count-btn p-2.5 rounded-xl text-sm font-bold">自訂</button>
                     </div>
                     <div id="custom-count-wrapper" class="hidden">
-                        <input type="number" id="custom-count-input" min="1" placeholder="請輸入題數 (最少 1)" class="w-full p-3 border border-blue-200 rounded-xl bg-blue-50 text-sm font-bold text-blue-700" oninput="updateCustomCount(this.value)">
+                        <input type="number" id="custom-count-input" min="1" placeholder="請輸入題數" class="w-full p-3 border border-blue-200 rounded-xl bg-blue-50 text-sm font-bold text-blue-700 outline-none" oninput="updateCustomCount(this.value)">
                     </div>
                 </div>
 
@@ -137,17 +137,17 @@
                 </div>
             </div>
             <div class="border rounded-2xl overflow-hidden mb-8 shadow-sm">
-                <div class="bg-gray-50 p-3 border-b text-[10px] font-bold text-gray-500 text-center tracking-widest uppercase">💡 點擊題目進行 AI 解析</div>
+                <div class="bg-gray-50 p-3 border-b text-[10px] font-bold text-gray-500 text-center uppercase tracking-widest">💡 點擊題目進行 AI 解析</div>
                 <div class="max-h-96 overflow-y-auto">
                     <table class="w-full text-xs">
                         <thead class="bg-gray-50 sticky top-0">
-                            <tr><th class="p-3 text-left text-gray-400 w-12">題號</th><th class="p-3 text-left text-gray-400">預覽</th><th class="p-3 text-center text-gray-400 w-12">結果</th></tr>
+                            <tr><th class="p-3 text-left w-12 text-gray-400">題號</th><th class="p-3 text-left text-gray-400">內容</th><th class="p-3 text-center w-12 text-gray-400">結果</th></tr>
                         </thead>
                         <tbody id="result-list-body" class="divide-y divide-gray-100 bg-white"></tbody>
                     </table>
                 </div>
             </div>
-            <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition">返回主選單</button>
+            <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold shadow-lg">返回主選單</button>
         </div>
     </div>
 
@@ -155,13 +155,13 @@
         <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 flex flex-col max-h-[75vh]">
             <h3 class="text-lg font-bold mb-4">📋 匯出錯題筆記</h3>
             <div class="flex gap-2 mb-4">
-                <button onclick="generateExport('text')" class="flex-grow py-2 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 active:scale-95 transition">純文字</button>
-                <button onclick="generateExport('markdown')" class="flex-grow py-2 rounded-lg text-xs font-bold bg-gray-50 text-gray-600 border border-gray-100 active:scale-95 transition">Markdown</button>
+                <button onclick="generateExport('text')" class="flex-grow py-2 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">純文字</button>
+                <button onclick="generateExport('markdown')" class="flex-grow py-2 rounded-lg text-xs font-bold bg-gray-50 text-gray-600 border border-gray-100">Markdown</button>
             </div>
             <textarea id="export-text" class="w-full flex-grow p-3 border rounded-xl font-mono text-[10px] mb-4 bg-gray-50 no-scrollbar" readonly placeholder="生成內容中..."></textarea>
             <div class="flex gap-2">
-                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:scale-95 transition">複製</button>
-                <button onclick="closeExportOverlay()" class="px-4 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold active:scale-95 transition">關閉</button>
+                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">複製內容</button>
+                <button onclick="closeExportOverlay()" class="px-4 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">關閉</button>
             </div>
         </div>
     </div>
@@ -184,32 +184,49 @@
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `law_backup_${new Date().toLocaleDateString()}.json`; a.click();
-            const now = new Date().toISOString();
-            localStorage.setItem('last_backup_timestamp', now);
+            localStorage.setItem('last_backup_timestamp', new Date().toISOString());
             updateBackupTime();
         }
 
         function triggerRestoreInput() { document.getElementById('restore-input').click(); }
-        function restoreProgress(input) {
+
+        // --- 核心進化：進度合併邏輯 ---
+        function mergeProgress(input) {
             const file = input.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.mastered) localStorage.setItem('law_mastered_list', data.mastered);
-                    if (data.errors) localStorage.setItem('law_error_book', data.errors);
-                    alert("還原完成，進度已更新！"); location.reload();
-                } catch (err) { alert("讀取失敗，請確認檔案格式。"); }
+                    const incoming = JSON.parse(e.target.result);
+                    
+                    // 1. 合併已掌握清單 (掌握一邊即算掌握)
+                    let currentMastered = JSON.parse(localStorage.getItem('law_mastered_list') || '[]');
+                    let incomingMastered = JSON.parse(incoming.mastered || '[]');
+                    let combinedMastered = [...new Set([...currentMastered, ...incomingMastered])];
+                    localStorage.setItem('law_mastered_list', JSON.stringify(combinedMastered));
+
+                    // 2. 合併錯題本 (兩邊錯題都加進來)
+                    let currentErrors = JSON.parse(localStorage.getItem('law_error_book') || '[]');
+                    let incomingErrors = JSON.parse(incoming.errors || '[]');
+                    let combinedErrors = [...new Set([...currentErrors, ...incomingErrors])];
+                    
+                    // 3. 邏輯校正：如果某題在 A 端是錯題，但在 B 端已掌握，應以「已掌握」為準
+                    combinedErrors = combinedErrors.filter(uuid => !combinedMastered.includes(uuid));
+                    localStorage.setItem('law_error_book', JSON.stringify(combinedErrors));
+
+                    alert(`進度合併成功！\n目前掌握題數：${combinedMastered.length}\n當前科目錯題：${combinedErrors.length}`);
+                    location.reload();
+                } catch (err) { alert("檔案讀取失敗，請確認檔案正確性。"); }
             };
             reader.readAsText(file);
         }
 
+        // --- 基礎邏輯 ---
         function getMasteredList() { return JSON.parse(localStorage.getItem('law_mastered_list') || '[]'); }
         function addToMastered(uuid) {
             let list = getMasteredList(); if (!list.includes(uuid)) { list.push(uuid); localStorage.setItem('law_mastered_list', JSON.stringify(list)); }
         }
         function isMastered(uuid) { return getMasteredList().includes(uuid); }
-        function exitQuiz() { if (confirm("確定放棄目前進度嗎？")) location.reload(); }
+        function exitQuiz() { if (confirm("確定放棄目前練習嗎？")) location.reload(); }
 
         function setCount(num, btn) {
             selectedCount = num;
@@ -222,15 +239,7 @@
             btn.classList.add('active');
             document.getElementById('custom-count-wrapper').classList.remove('hidden');
         }
-
-        // --- 修正自訂題數邏輯：最少 1 題 ---
-        function updateCustomCount(val) {
-            let num = parseInt(val);
-            if (!isNaN(num)) {
-                // 如果輸入小於 1，強制設為 1
-                selectedCount = Math.max(1, num);
-            }
-        }
+        function updateCustomCount(val) { let num = parseInt(val); if (!isNaN(num)) { selectedCount = Math.max(1, num); } }
 
         async function loadFromLocal() {
             setTimeout(() => {
@@ -240,7 +249,6 @@
                 updateBackupTime();
             }, 150);
         }
-
         function showSetup() {
             document.getElementById('loading-status').classList.add('hidden');
             document.getElementById('setup-section').classList.remove('hidden');
@@ -249,7 +257,6 @@
             if (rawData.length > 0) processRawData();
             updateErrorUI();
         }
-
         function triggerFileInput() { document.getElementById('file-input').click(); }
         window.onload = loadFromLocal;
 
@@ -297,7 +304,7 @@
                 if (typeFilter === "SINGLE") basePool = basePool.filter(item => item.answer.length === 1);
                 else if (typeFilter === "MULTI") basePool = basePool.filter(item => item.answer.length > 1);
                 pool = basePool.filter(item => !isMastered(item.uuid));
-                if (pool.length === 0 && basePool.length > 0) { alert("此分類已全答對，重啟循環。"); pool = basePool; }
+                if (pool.length === 0 && basePool.length > 0) { alert("此分類已全答對，重啟循環中。"); pool = basePool; }
             }
             let finalCount = (selectedCount === 'ALL') ? pool.length : selectedCount;
             quizPool = pool.sort(() => Math.random() - 0.5).slice(0, finalCount);
@@ -335,7 +342,7 @@
             if (idx > -1) { selectedMultiChoices.splice(idx, 1); btn.classList.remove('ring-2', 'ring-blue-500'); }
             else { selectedMultiChoices.push(label); btn.classList.add('ring-2', 'ring-blue-500'); }
         }
-        function submitMultiAnswer() { if (selectedMultiChoices.length === 0) return alert("選一個！"); checkAnswer(selectedMultiChoices.sort().join(''), null); }
+        function submitMultiAnswer() { if (selectedMultiChoices.length === 0) return alert("選答案！"); checkAnswer(selectedMultiChoices.sort().join(''), null); }
 
         function checkAnswer(choice, btn) {
             const q = quizPool[currentIdx]; document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
@@ -378,7 +385,7 @@
         async function runAIAnalysis(q) {
             const opt = Object.entries(q.options).map(([l, t]) => `(${l}) ${t}`).join('\n');
             const prompt = `分析法律題目：\n【科目】${q.subject || '法律綜合'}\n【出處】${q.title}\n【題目】\n${q.content}\n\n【選項】\n${opt}\n\n【正確答案】\n(${q.answer})\n\n請詳解法理爭點與相關條文。`;
-            navigator.clipboard.writeText(prompt); alert("指令已複製！請前往 Gemini 貼上。"); window.open("https://gemini.google.com/app", "_blank");
+            navigator.clipboard.writeText(prompt); alert("指令已複製！請貼上 Gemini。"); window.open("https://gemini.google.com/app", "_blank");
         }
         function askGeminiAI() { runAIAnalysis(quizPool[currentIdx]); }
 
@@ -392,7 +399,7 @@
             document.getElementById('error-notice').classList.toggle('hidden', currentErrors.length === 0);
         }
 
-        function clearErrorBook() { if (confirm("清空數據（包含所有科目錯題與掌握清單）？")) { localStorage.clear(); location.reload(); } }
+        function clearErrorBook() { if (confirm("確定清空數據？")) { localStorage.clear(); location.reload(); } }
 
         function openExportModal() { document.getElementById('export-overlay').classList.remove('hidden'); generateExport('text'); }
         function closeExportOverlay() { document.getElementById('export-overlay').classList.add('hidden'); }
@@ -401,9 +408,7 @@
             const ids = JSON.parse(localStorage.getItem('law_error_book') || '[]');
             const items = rawData.filter(i => ids.includes(i.uuid));
             let t = (format === 'text') ? `⚖️ 錯題筆記 (${new Date().toLocaleDateString()})\n\n` : `# ⚖️ 錯題集 (${new Date().toLocaleDateString()})\n\n`;
-            
-            if (items.length === 0) { document.getElementById('export-text').value = "當前科目無錯題紀錄。"; return; }
-
+            if (items.length === 0) { document.getElementById('export-text').value = "當前科目無錯題。"; return; }
             items.forEach((item, idx) => {
                 const optStr = Object.entries(item.options || {}).map(([k, v]) => format === 'text' ? `(${k}) ${v}` : `- **(${k})** ${v}`).join('\n');
                 if (format === 'text') { t += `${idx+1}. [${item._detectedSubject}] ${item.title}\n題目：${item.content}\n選項：\n${optStr}\n答案：(${item.answer})\n\n---\n\n`; }
