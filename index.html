@@ -35,13 +35,21 @@
         </div>
 
         <div id="setup-section" class="hidden">
+            <div id="resume-notice" class="hidden bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-6 flex justify-between items-center">
+                <p class="text-yellow-800 text-xs font-bold">偵測到未完成的練習，要繼續嗎？</p>
+                <div class="flex gap-2">
+                    <button onclick="resumeQuiz()" class="bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold">繼續</button>
+                    <button onclick="discardSession()" class="bg-white text-gray-400 border px-3 py-1.5 rounded-lg text-[10px] font-bold">放棄</button>
+                </div>
+            </div>
+
             <div class="flex flex-col items-center mb-6">
                 <div class="flex gap-2 mb-2">
                     <button onclick="backupProgress()" class="text-xs bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 shadow-sm transition">💾 備份進度</button>
                     <button onclick="triggerRestoreInput()" class="text-xs bg-green-50 text-green-700 px-4 py-2 rounded-lg font-bold border border-green-200 shadow-sm transition">➕ 合併進度</button>
                     <input type="file" id="restore-input" accept=".json" class="hidden" onchange="mergeProgress(this)">
                 </div>
-                <p id="backup-time-display" class="text-[10px] text-gray-400 italic">資料將自動從瀏覽器帶入</p>
+                <p id="backup-time-display" class="text-[10px] text-gray-400 italic">進度將自動保存至瀏覽器</p>
             </div>
 
             <div id="upload-area" class="mb-6 p-8 border-2 border-dashed border-gray-100 rounded-xl text-center">
@@ -136,7 +144,7 @@
                     <span class="text-gray-400 font-bold">/ <span id="total-stats">0</span> 題</span>
                 </div>
             </div>
-            <div id="result-list-container" class="border rounded-2xl overflow-hidden mb-8 shadow-sm">
+            <div class="border rounded-2xl overflow-hidden mb-8 shadow-sm">
                 <div class="bg-gray-50 p-3 border-b text-[10px] font-bold text-gray-500 text-center uppercase">💡 點擊題目進行 AI 解析</div>
                 <div class="max-h-96 overflow-y-auto">
                     <table class="w-full text-xs">
@@ -147,7 +155,7 @@
                     </table>
                 </div>
             </div>
-            <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold shadow-lg">返回主選單</button>
+            <button onclick="finishSession()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold shadow-lg">返回主選單</button>
         </div>
     </div>
 
@@ -157,11 +165,11 @@
             <div class="grid grid-cols-3 gap-2 mb-4">
                 <button onclick="generateExport('text')" class="py-2 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">純文字</button>
                 <button onclick="generateExport('markdown')" class="py-2 rounded-lg text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-100">MD</button>
-                <button onclick="exportToCSV()" class="py-2 rounded-lg text-[10px] font-bold bg-green-50 text-green-700 border border-green-100">Excel/CSV</button>
+                <button onclick="exportToCSV()" class="py-2 rounded-lg text-[10px] font-bold bg-green-50 text-green-700 border border-green-100">Excel</button>
             </div>
-            <textarea id="export-text" class="w-full flex-grow p-3 border rounded-xl font-mono text-[10px] mb-4 bg-gray-50 no-scrollbar" readonly placeholder="請選擇格式..."></textarea>
+            <textarea id="export-text" class="w-full flex-grow p-3 border rounded-xl font-mono text-[10px] mb-4 bg-gray-50 no-scrollbar" readonly></textarea>
             <div class="flex gap-2">
-                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">複製</button>
+                <button onclick="copyExportText()" class="flex-grow bg-blue-600 text-white py-3 rounded-xl font-bold">複製</button>
                 <button onclick="closeExportOverlay()" class="px-4 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">關閉</button>
             </div>
         </div>
@@ -174,6 +182,51 @@
         let selectedCount = 10; let correctCount = 0; let isErrorMode = false;
         let selectedMultiChoices = [];
 
+        // --- 核心進化：狀態持久化 ---
+        function saveSession() {
+            const session = {
+                quizPool,
+                userAnswers,
+                currentIdx,
+                correctCount,
+                isErrorMode,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem('law_quiz_session', JSON.stringify(session));
+        }
+
+        function checkSession() {
+            const saved = localStorage.getItem('law_quiz_session');
+            if (saved && rawData.length > 0) {
+                document.getElementById('resume-notice').classList.remove('hidden');
+            }
+        }
+
+        function resumeQuiz() {
+            const saved = JSON.parse(localStorage.getItem('law_quiz_session'));
+            quizPool = saved.quizPool;
+            userAnswers = saved.userAnswers;
+            currentIdx = saved.currentIdx;
+            correctCount = saved.correctCount;
+            isErrorMode = saved.isErrorMode;
+            
+            document.getElementById('resume-notice').classList.add('hidden');
+            document.getElementById('setup-section').classList.add('hidden');
+            document.getElementById('quiz-section').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function discardSession() {
+            localStorage.removeItem('law_quiz_session');
+            document.getElementById('resume-notice').classList.add('hidden');
+        }
+
+        function finishSession() {
+            discardSession();
+            location.reload();
+        }
+
+        // --- 備份/合併邏輯 ---
         function backupProgress() {
             const data = { mastered: localStorage.getItem('law_mastered_list'), errors: localStorage.getItem('law_error_book') };
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -199,24 +252,23 @@
                     let inM = JSON.parse(incoming.mastered || '[]');
                     let combM = [...new Set([...curM, ...inM])];
                     localStorage.setItem('law_mastered_list', JSON.stringify(combM));
-
                     let curE = JSON.parse(localStorage.getItem('law_error_book') || '[]');
                     let inE = JSON.parse(incoming.errors || '[]');
                     let combE = [...new Set([...curE, ...inE])].filter(id => !combM.includes(id));
                     localStorage.setItem('law_error_book', JSON.stringify(combE));
-
-                    alert("進度已智能合併！"); location.reload();
+                    alert("進度合併成功！"); location.reload();
                 } catch (err) { alert("讀取失敗！"); }
             };
             reader.readAsText(file);
         }
 
+        // --- 答題核心邏輯 ---
         function getMasteredList() { return JSON.parse(localStorage.getItem('law_mastered_list') || '[]'); }
         function addToMastered(uuid) {
             let list = getMasteredList(); if (!list.includes(uuid)) { list.push(uuid); localStorage.setItem('law_mastered_list', JSON.stringify(list)); }
         }
         function isMastered(uuid) { return getMasteredList().includes(uuid); }
-        function exitQuiz() { if (confirm("確定放棄目前練習？")) location.reload(); }
+        function exitQuiz() { if (confirm("確定離開？進度將保留在首頁。")) location.reload(); }
 
         function setCount(num, btn) {
             selectedCount = num;
@@ -234,11 +286,19 @@
         async function loadFromLocal() {
             setTimeout(() => {
                 const saved = localStorage.getItem('law_master_db');
-                if (saved) { rawData = JSON.parse(saved); showSetup(); } 
-                else { document.getElementById('loading-status').classList.add('hidden'); document.getElementById('setup-section').classList.remove('hidden'); }
+                if (saved) { 
+                    rawData = JSON.parse(saved); 
+                    showSetup(); 
+                    checkSession(); // 載入資料後檢查是否有存檔
+                } 
+                else { 
+                    document.getElementById('loading-status').classList.add('hidden'); 
+                    document.getElementById('setup-section').classList.remove('hidden'); 
+                }
                 updateBackupTime();
             }, 150);
         }
+
         function showSetup() {
             document.getElementById('loading-status').classList.add('hidden');
             document.getElementById('setup-section').classList.remove('hidden');
@@ -247,6 +307,7 @@
             if (rawData.length > 0) processRawData();
             updateErrorUI();
         }
+
         function triggerFileInput() { document.getElementById('file-input').click(); }
         window.onload = loadFromLocal;
 
@@ -276,6 +337,7 @@
         }
 
         function startQuiz(isErr) {
+            discardSession(); // 開始新練習時清除舊存檔
             isErrorMode = isErr;
             const yV = document.getElementById('year-select').value;
             const sV = document.getElementById('subject-select').value;
@@ -330,12 +392,13 @@
             if (i > -1) { selectedMultiChoices.splice(i, 1); btn.classList.remove('ring-2', 'ring-blue-500'); }
             else { selectedMultiChoices.push(l); btn.classList.add('ring-2', 'ring-blue-500'); }
         }
-        function submitMultiAnswer() { if (selectedMultiChoices.length === 0) return alert("選答案！"); checkAnswer(selectedMultiChoices.sort().join(''), null); }
+        function submitMultiAnswer() { if (selectedMultiChoices.length === 0) return alert("選一個！"); checkAnswer(selectedMultiChoices.sort().join(''), null); }
 
         function checkAnswer(choice, btn) {
             const q = quizPool[currentIdx]; document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             const isC = (choice === q.answer);
             const fb = document.getElementById('feedback-card');
+            
             userAnswers.push({ uuid: q.uuid, num: q.number || (currentIdx+1), content: q.content, isCorrect: isC, originalQ: q });
 
             if (isC) {
@@ -350,10 +413,12 @@
                 addError(q.uuid);
             }
             document.getElementById('correct-ans').innerText = `正確答案：(${q.answer})`;
-            document.getElementById('feedback').classList.remove('hidden'); updateErrorUI();
+            document.getElementById('feedback').classList.remove('hidden'); 
+            updateErrorUI();
+            saveSession(); // 每一題答完即刻存檔
         }
 
-        function nextQuestion() { currentIdx++; if (currentIdx < quizPool.length) renderQuestion(); else showResult(); }
+        function nextQuestion() { currentIdx++; if (currentIdx < quizPool.length) { renderQuestion(); saveSession(); } else showResult(); }
 
         function showResult() {
             document.getElementById('quiz-section').classList.add('hidden');
@@ -368,12 +433,13 @@
                 tr.innerHTML = `<td class="p-3 text-center font-bold text-gray-400">${r.num}</td><td class="p-3 line-clamp-1">${r.content}</td><td class="p-3 text-center">${r.isCorrect ? '✅' : '❌'}</td>`;
                 body.appendChild(tr);
             });
+            saveSession(); // 結果頁也存檔，確保重新整理後還能看列表
         }
 
         async function runAIAnalysis(q) {
             const opt = Object.entries(q.options).map(([l, t]) => `(${l}) ${t}`).join('\n');
             const prompt = `分析法律題目：\n【科目】${q.subject || '法律綜合'}\n【出處】${q.title}\n【題目】\n${q.content}\n\n【選項】\n${opt}\n\n【正確答案】\n(${q.answer})\n\n請詳解法理爭點與相關條文。`;
-            navigator.clipboard.writeText(prompt); alert("AI指令已複製！"); window.open("https://gemini.google.com/app", "_blank");
+            navigator.clipboard.writeText(prompt); alert("指令已複製！"); window.open("https://gemini.google.com/app", "_blank");
         }
         function askGeminiAI() { runAIAnalysis(quizPool[currentIdx]); }
 
@@ -405,12 +471,10 @@
             document.getElementById('export-text').value = t;
         }
 
-        // --- CSV 匯出功能 ---
         function exportToCSV() {
             const ids = JSON.parse(localStorage.getItem('law_error_book') || '[]');
             const items = rawData.filter(i => ids.includes(i.uuid));
             if (items.length === 0) return alert("無錯題可匯出");
-            
             let csv = "\ufeff題號,科目,出處,題目,選項,正確答案\n";
             items.forEach((i, idx) => {
                 const opt = Object.entries(i.options).map(([k,v])=>`(${k})${v}`).join(' ');
